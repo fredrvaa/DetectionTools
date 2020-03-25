@@ -49,6 +49,7 @@ def split_dataset(coco_data, subsets, splits, remove, src_folder, dst_folder):
         for annotation in coco_data['annotations']:
             if (annotation['image_id'] == str(image['id'])):
                 annotation['image_id'] = int(annotation['image_id'])
+                annotation['category_id'] = 0 # Temporary fix since VIA doesn't export category id
                 annotations.append(annotation)
 
         if remove:

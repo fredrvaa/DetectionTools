@@ -1,5 +1,7 @@
 # Files
-cfg
 *.json
 *.jpg
 *.png
+*.txt
+
+cfg
