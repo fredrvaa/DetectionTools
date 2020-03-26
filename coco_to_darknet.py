@@ -33,7 +33,11 @@ if __name__ == '__main__':
 
         print(f"Converting {subset} to Darknet")
         for annotation in tqdm(coco_data['annotations']):
-            image = next(image for image in coco_data['images'] if image['id'] == annotation['image_id'])
+            try:
+                image = next(image for image in coco_data['images'] if str(image['id']) == str(annotation['image_id']))
+            except:
+                print(annotation)
+                break
             im_w = image['width']
             im_h = image['height']
             annotation_name = image['file_name'].split('.')[0] + '.txt'

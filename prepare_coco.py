@@ -4,8 +4,11 @@ import numpy as np
 from tqdm import tqdm
 from PIL import Image
 
-# cfg file must be specified to run script
-# each line in cfg specifies 1) a path to dataset containing .json file and images 2) wether the image that are annotated should be aggregated
+# cfg file must be specified to run script. Example /path/to/dataset True
+
+# Each line in cfg specifies:
+# 1) a path to dataset containing .json file and images 
+# 2) wether images without annotation should be removed
 
 def to_bool(s):
     return True if s.lower() in ['true', 't', 'yes', 'y'] else False
@@ -17,11 +20,11 @@ def parse_cfg(cfg):
 
 def initalize_data(output_path, subset):
     subset_path = os.path.join(output_path, 'annotations', f"{subset}.json")
-    print(subset_path)
+    {'info':{"date_created":str(datetime.datetime.now())}, 'images':[], 'annotations':[], 'categories': [{'supercategory': "corrosion", "id": 0,"name": "corrosion"}]}
     if os.path.exists(subset_path):
         with open(subset_path) as file:
             return json.load(file)
-    return {'info':{"date_created":str(datetime.datetime.now())}, 'images':[], 'annotations':[], 'categories': [{'supercategory': "corrosion","id": 1,"name": "corrosion"}]}
+    return {'info':{"date_created":str(datetime.datetime.now())}, 'images':[], 'annotations':[], 'categories': [{'supercategory': "corrosion","id": 0,"name": "corrosion"}]}
 
 def splits_to_subsets(splits):
     subsets = ['train', 'val', 'test']
@@ -31,7 +34,10 @@ def splits_to_subsets(splits):
     return [{'subset':s,'prob':p} for (s,p) in zip(subsets, splits)], splits
 
 def split_dataset(coco_data, subsets, splits, remove, src_folder, dst_folder):
+    ids = [len(s['coco_data']['images']) for s in subsets]
     for image in tqdm(coco_data['images']):
+        subset = np.random.choice(subsets, 1, p=splits)[0]
+        
         # Check if image is present
         file_name = image['file_name']
         if os.path.exists(f'dataset/train/{file_name}'):
@@ -45,25 +51,28 @@ def split_dataset(coco_data, subsets, splits, remove, src_folder, dst_folder):
             continue
 
         # Check if image has been anotated
-        annotations = []
-        for annotation in coco_data['annotations']:
-            if (annotation['image_id'] == str(image['id'])):
-                annotation['image_id'] = int(annotation['image_id'])
-                annotation['category_id'] = 0 # Temporary fix since VIA doesn't export category id
-                annotations.append(annotation)
-
-        if remove:
-            if len(annotations) is 0:
-                continue
-
-        # Append data to correct subset
-        subset = np.random.choice(subsets, 1, p=splits)[0]
+        annotations = [annotation for annotation in coco_data['annotations'] if str(annotation['image_id']) == str(image['id'])]
+        if remove and len(annotations) is 0: continue
+        for annotation in annotations:
+            new_annotation = {}
+            new_annotation['id'] = new_annotation['image_id'] = ids[subsets.index(subset)]
+            bbox = copy.deepcopy(annotation['bbox'])
+            for b in [bbox[0], bbox[2]]:
+                if b < 0: b = 0
+                if b > image['width']: b = copy.deepcopy(image['width'])
+            for b in [bbox[1], bbox[3]]:
+                if b < 0: b = 0
+                if b > image['height']: b = copy.deepcopy(image['height'])
+            new_annotation['bbox'] = bbox
+            new_annotation['category_id'] = 0
+            subset['coco_data']['annotations'].append(new_annotation)
+        
+        image['id'] = ids[subsets.index(subset)]
         subset['coco_data']['images'].append(image)
-        subset['coco_data']['annotations'].extend(annotations)
 
-        # Saving images instead of copying to remove metadata which can cause conflict when loading images with PIL
+        ids[subsets.index(subset)] += 1
+
         img.convert('RGB').save(f"{dst_folder}/{subset['subset']}/{image['file_name']}")   
-
 
 if __name__ == '__main__':
     import argparse
@@ -83,9 +92,9 @@ if __name__ == '__main__':
     prev_subset_data = {}
     for subset in subsets:
         subset['coco_data'] = initalize_data(output_path, subset['subset'])
-        prev_subset_data[subset['subset']] = {'images':0, 'annotations':0}
-        prev_subset_data[subset['subset']]['images'] = len(subset['coco_data']['images'])
-        prev_subset_data[subset['subset']]['annotations'] = len(subset['coco_data']['annotations'])
+        prev_subset_data[subset['subset']] = {'num_images':0, 'annotations':0}
+        prev_subset_data[subset['subset']]['num_images'] = len(subset['coco_data']['images'])
+        prev_subset_data[subset['subset']]['num_annotations'] = len(subset['coco_data']['annotations'])
 
     # Prepare folders
     if not os.path.exists(output_path):
@@ -125,9 +134,9 @@ if __name__ == '__main__':
     print("Created coco dataset with following attributes:")
     for subset in subsets:
         image_num = len(subset['coco_data']['images'])
-        new_image_num = len(subset['coco_data']['images']) - prev_subset_data[subset['subset']]['images']
+        new_image_num = len(subset['coco_data']['images']) - prev_subset_data[subset['subset']]['num_images']
         annotations_num = len(subset['coco_data']['annotations'])
-        new_annotations_num = len(subset['coco_data']['annotations']) - prev_subset_data[subset['subset']]['annotations']
+        new_annotations_num = len(subset['coco_data']['annotations']) - prev_subset_data[subset['subset']]['num_annotations']
         print(f'''{subset['subset']} \t | #images = {image_num} ({new_image_num} new)\t | #annotations = {annotations_num} ({new_annotations_num} new)''')
         
 
