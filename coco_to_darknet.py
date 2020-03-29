@@ -13,7 +13,7 @@ if __name__ == '__main__':
     from tqdm import tqdm
 
     parser = argparse.ArgumentParser(description='Converts annotations from COCO format to Darknet format')
-    parser.add_argument('--input_path', help="Path to input folder")
+    parser.add_argument('--input_path', default='prepared_coco_data', help="Path to input folder")
     parser.add_argument('--output_path', default='darknet_annotations', help="Path to output folder")
     args = parser.parse_args()
 

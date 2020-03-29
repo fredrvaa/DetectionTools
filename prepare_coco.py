@@ -56,13 +56,15 @@ def split_dataset(coco_data, subsets, splits, remove, src_folder, dst_folder):
         for annotation in annotations:
             new_annotation = {}
             new_annotation['id'] = new_annotation['image_id'] = ids[subsets.index(subset)]
+            
             bbox = copy.deepcopy(annotation['bbox'])
-            for b in [bbox[0], bbox[2]]:
+            for b in bbox:
                 if b < 0: b = 0
-                if b > image['width']: b = copy.deepcopy(image['width'])
-            for b in [bbox[1], bbox[3]]:
-                if b < 0: b = 0
-                if b > image['height']: b = copy.deepcopy(image['height'])
+            if bbox[0] > image['width']: bbox[0] = image['width']
+            if bbox[0] + bbox[2] > image['width']: bbox[2] = image['width'] - bbox[0]
+            if bbox[1] > image['height']: bbox[1] = image['height']
+            if bbox[1] + bbox[3] > image['height']: bbox[3] = image['height'] - bbox[0]
+            
             new_annotation['bbox'] = bbox
             new_annotation['category_id'] = 0
             subset['coco_data']['annotations'].append(new_annotation)
@@ -115,7 +117,7 @@ if __name__ == '__main__':
     for dataset in datasets:
         path = dataset[0]
         remove = to_bool(dataset[1])
-        print(f"Started splitting {path}. Remove images without annotations: {str(remove)}")
+        print(f"Adding {path}. Remove images without annotations: {str(remove)}")
 
         # Read annotated coco data
         json_file = [x for x in os.listdir(path) if x.endswith(".json")][0]
@@ -125,7 +127,6 @@ if __name__ == '__main__':
 
         split_dataset(coco_data, subsets, splits, remove, path, output_path)
 
-        print(f"Finished splitting {path}")
             
     for subset in subsets:
         with open(f"{output_path}/annotations/{subset['subset']}.json", 'w') as file:
