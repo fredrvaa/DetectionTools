@@ -61,23 +61,25 @@ if __name__=='__main__':
                         'height': image_aug.shape[0],
                         'file_name': f"{image_id}.jpg"
                         }
-            
-
+            bboxes_aug = bboxes_aug.remove_out_of_image().clip_out_of_image()
             annotations_data = []
             for b in bboxes_aug:
-                annotaiton_data = {
+                annotation_data = {
                                 'id': annotations_id,
                                 'image_id': image_id,
-                                'bbox': [b.x1, b.y1, b.x2 - b.x1, b.y2 - b.y1],
+                                'bbox': [int(b.x1), int(b.y1), int(b.x2 - b.x1), int(b.y2 - b.y1)],
                                 'category_id': 0
                                 }
+                annotations_data.append(annotation_data)
+                annotations_id += 1
+
             new_coco_data['images'].append(image_data)
             new_coco_data['annotations'].extend(annotations_data)
 
             cv2.imwrite(os.path.join(args.output, f"{image_id}.jpg"), image_aug)
 
             image_id += 1
-            annotations_id += 1
+            
 
     with open(os.path.join(args.output, f"annotations.json"), 'w') as file:
         json.dump(new_coco_data, file)
