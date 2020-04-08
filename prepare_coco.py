@@ -124,7 +124,7 @@ if __name__ == '__main__':
  
         with open(os.path.join(path, json_file), 'r') as file:
             coco_data = json.load(file)
-
+        
         split_dataset(coco_data, subsets, splits, remove, path, output_path)
 
             
