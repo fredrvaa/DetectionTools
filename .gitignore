@@ -3,5 +3,7 @@
 *.jpg
 *.png
 *.txt
+*.webp
+*.html
 
 cfg
