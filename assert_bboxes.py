@@ -2,10 +2,10 @@ import os, json, random
 import cv2
 
 #Check json values
-for annotation_file in os.listdir(os.path.join('prepared_coco_data', 'annotations')):
+for annotation_file in os.listdir(os.path.join('datasets/C10', 'annotations')):
     subset = annotation_file.split('.')[0]
 
-    with open(os.path.join('prepared_coco_data', 'annotations', annotation_file)) as file:
+    with open(os.path.join('datasets/C10', 'annotations', annotation_file)) as file:
         coco_data = json.load(file)
 
     # Check image ids
@@ -25,6 +25,7 @@ for annotation_file in os.listdir(os.path.join('prepared_coco_data', 'annotation
         assert 0 <= bbox[1] <= image['height'], f"y1 out of bounds for {annotation}"
         assert 0 <= bbox[2] <= image['width'] - bbox[0], f"w out of bounds for {annotation}"
         assert 0 <= bbox[3] <= image['height'] - bbox[1], f"h out of bounds for {annotation}"
+    print(annotation_file, ' pass')
 
         
             

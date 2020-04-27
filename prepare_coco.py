@@ -35,6 +35,7 @@ def splits_to_subsets(splits):
 
 def split_dataset(coco_data, subsets, splits, remove, src_folder, dst_folder):
     ids = [len(s['coco_data']['images']) for s in subsets]
+    anno_ids = [len(s['coco_data']['annotations']) for s in subsets]
     for image in tqdm(coco_data['images']):
         subset = np.random.choice(subsets, 1, p=splits)[0]
         
@@ -50,24 +51,41 @@ def split_dataset(coco_data, subsets, splits, remove, src_folder, dst_folder):
             print(f"Skipped {file_name} because it could not be loaded")
             continue
 
-        # Check if image has been anotated
+        # Check if image has been annotated
         annotations = [annotation for annotation in coco_data['annotations'] if str(annotation['image_id']) == str(image['id'])]
         if remove and len(annotations) is 0: continue
+
         for annotation in annotations:
             new_annotation = {}
-            new_annotation['id'] = new_annotation['image_id'] = ids[subsets.index(subset)]
+            new_annotation['id'] = anno_ids[subsets.index(subset)]
+            new_annotation['image_id'] = ids[subsets.index(subset)]
             
             bbox = copy.deepcopy(annotation['bbox'])
-            for b in bbox:
-                if b < 0: b = 0
-            if bbox[0] > image['width']: bbox[0] = image['width']
+            # Check if out of bounds in wrong direction
+            if bbox[0] > image['width'] or bbox[1] > image['height'] or bbox[2] <= 0 or bbox[3] <= 0:
+                print(f"Out of bounds bbox: {bbox} | Width: {image['width']}, Height: {image['height']}")
+                continue
+
+            # Check if x,y slightly out of bounds
+            if bbox[0] < 0:
+                bbox[2] += bbox[0]
+                bbox[0] = 0
+
+            if bbox[1] < 0: 
+                bbox[3] += bbox[1]
+                bbox[1] = 0
+
+            # Check if w,h slightly out of bounds
             if bbox[0] + bbox[2] > image['width']: bbox[2] = image['width'] - bbox[0]
-            if bbox[1] > image['height']: bbox[1] = image['height']
-            if bbox[1] + bbox[3] > image['height']: bbox[3] = image['height'] - bbox[0]
+            if bbox[1] + bbox[3] > image['height']: bbox[3] = image['height'] - bbox[1]
             
             new_annotation['bbox'] = bbox
-            new_annotation['category_id'] = 0
+            new_annotation['category_id'] = 1
+            new_annotation['iscrowd'] = 0
+            new_annotation['area'] = bbox[2] * bbox[3]
             subset['coco_data']['annotations'].append(new_annotation)
+
+            anno_ids[subsets.index(subset)] += 1
         
         image['id'] = ids[subsets.index(subset)]
         subset['coco_data']['images'].append(image)
