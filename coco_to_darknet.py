@@ -42,5 +42,5 @@ if __name__ == '__main__':
             im_h = image['height']
             annotation_name = image['file_name'].split('.')[0] + '.txt'
             with open(os.path.join(output_path, subset, annotation_name), 'a') as file:
-                file.write(f"{annotation['category_id']} {xywh2xcycwh_norm(annotation['bbox'], im_w, im_h)}\n")
+                file.write(f"{0} {xywh2xcycwh_norm(annotation['bbox'], im_w, im_h)}\n")
             
