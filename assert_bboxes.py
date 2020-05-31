@@ -1,11 +1,13 @@
 import os, json, random
 import cv2
 
+dataset = 'datasets/C10'
+
 #Check json values
-for annotation_file in os.listdir(os.path.join('datasets/C10', 'annotations')):
+for annotation_file in os.listdir(os.path.join(dataset, 'annotations')):
     subset = annotation_file.split('.')[0]
 
-    with open(os.path.join('datasets/C10', 'annotations', annotation_file)) as file:
+    with open(os.path.join(dataset, 'annotations', annotation_file)) as file:
         coco_data = json.load(file)
 
     # Check image ids
